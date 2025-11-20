@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EarthGenius V11 - Master Earth Science Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            overflow-x: hidden;
+            color: white;
+        }
+
+        /* --- PARALLAX ENGINE LAYERS --- */
+        .layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 0.1s ease-out;
+            z-index: -1;
+        }
+
+        #layer-space {
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=3840&auto=format&fit=crop');
+            opacity: 1;
+            z-index: -4;
+        }
+
+        #layer-surface {
+            background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.4)), url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=100&w=3840&auto=format&fit=crop');
+            opacity: 0;
+            z-index: -3;
+        }
+
+        #layer-underground {
+            background-image: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(20, 10, 5, 0.9)), url('https://images.unsplash.com/photo-1504866690658-435e8d998371?q=80&w=3840&auto=format&fit=crop');
+            opacity: 0;
+            z-index: -2;
+        }
+
+        #layer-core {
+            background-image: linear-gradient(to bottom, rgba(50, 0, 0, 0.6), rgba(255, 69, 0, 0.3)), url('https://images.unsplash.com/photo-1605663869252-28936e892763?q=80&w=3840&auto=format&fit=crop');
+            opacity: 0;
+            z-index: -1;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .nav-icon-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-icon-btn:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+
+        /* --- HOLOGRAPHIC GLOBE (CSS 3D) --- */
+        .scene {
+            width: 100px;
+            height: 100px;
+            perspective: 600px;
+            margin: 0 auto;
+        }
+        .globe {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotateGlobe 20s infinite linear;
+        }
+        .globe-sphere {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0.4));
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2), inset 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+        .ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 50%;
+            transform-origin: center;
+        }
+        .ring-h { width: 100%; height: 100%; transform: translate(-50%, -50%) rotateX(90deg); }
+        .ring-v1 { width: 100%; height: 100%; transform: translate(-50%, -50%); }
+        .ring-v2 { width: 100%; height: 100%; transform: translate(-50%, -50%) rotateY(45deg); }
+        .ring-v3 { width: 100%; height: 100%; transform: translate(-50%, -50%) rotateY(90deg); }
+        .ring-v4 { width: 100%; height: 100%; transform: translate(-50%, -50%) rotateY(135deg); }
+        
+        @keyframes rotateGlobe {
+            from { transform: rotateY(0deg) rotateX(15deg); }
+            to { transform: rotateY(360deg) rotateX(15deg); }
+        }
+
+        /* --- LIVE TICKER --- */
+        .ticker-wrap {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+            overflow: hidden;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+        }
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: ticker 40s linear infinite;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #38bdf8;
+        }
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        /* --- SECTIONS --- */
+        .section-spacer {
+            /* FIXED: Mengubah height menjadi min-height agar konten tidak tertumpuk */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 4rem 2rem; /* Tambah padding vertical agar tidak mepet */
+        }
+        
+        /* --- MODAL --- */
+        #settings-modal {
+            transition: opacity 0.3s ease;
+        }
+        
+        /* Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -10px; box-shadow: 0 0 15px rgba(56,189,248,0.8); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- 1. Parallax Background Layers -->
+    <div id="layer-space" class="layer"></div>
+    <div id="layer-surface" class="layer"></div>
+    <div id="layer-underground" class="layer"></div>
+    <div id="layer-core" class="layer"></div>
+
+    <!-- 2. Live Data Ticker (Top Bar) -->
+    <div class="ticker-wrap">
+        <div class="ticker" id="live-ticker">
+            [LIVE] MEMUAT DATA JARINGAN SENSOR GLOBAL...
+        </div>
+    </div>
+
+    <!-- 3. Settings / API Key Button -->
+    <button onclick="toggleSettings()" class="fixed top-10 right-4 z-50 p-2 bg-black/50 hover:bg-blue-600 rounded-full border border-white/20 transition-all shadow-lg group" title="Konfigurasi AI">
+        <svg class="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+    </button>
+
+    <!-- 4. Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/80 z-[60] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-900 p-6 rounded-xl border border-blue-500/30 max-w-md w-full m-4 shadow-2xl">
+            <h3 class="text-xl font-bold text-blue-400 mb-4">Konfigurasi Neural Core</h3>
+            <p class="text-xs text-gray-400 mb-4">Untuk mengaktifkan fitur AI Live (Gemini) di platform eksternal (seperti OneCompiler), masukkan API Key Google Anda di bawah ini.</p>
+            <input type="text" id="user-api-key" placeholder="Paste Gemini API Key Here (starts with Alza...)" class="w-full p-3 bg-black/50 border border-gray-600 rounded text-white text-sm mb-4 focus:border-blue-500 outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleSettings()" class="px-4 py-2 text-gray-400 hover:text-white text-sm">Tutup</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-bold">Simpan & Aktifkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <div class="relative pt-12">
+
+        <!-- SECTION 1: SURFACE (Home) -->
+        <section id="sec-surface" class="section-spacer flex-col justify-start pt-20">
+            
+            <!-- Holographic Globe -->
+            <div class="scene mb-6 hover:scale-110 transition-transform cursor-pointer" title="Interactive Geo-Model">
+                <div class="globe">
+                    <div class="globe-sphere"></div>
+                    <div class="ring ring-h"></div>
+                    <div class="ring ring-v1"></div>
+                    <div class="ring ring-v2"></div>
+                    <div class="ring ring-v3"></div>
+                    <div class="ring ring-v4"></div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="text-center mb-8 animate-fade-in-up">
+                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-200 to-blue-400 tracking-tight mb-2 drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]">
+                    EARTHGENIUS V11
+                </h1>
+                <p class="text-blue-200 text-sm font-mono tracking-widest uppercase">Core Intelligence System</p>
+                <div id="connection-status" class="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                    <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" id="status-dot"></div>
+                    <span class="text-[10px] font-mono text-gray-300" id="status-text">OFFLINE SIMULATION MODE</span>
+                </div>
+            </div>
+
+            <!-- Mega-Menu Navigation -->
+            <div class="grid grid-cols-4 gap-4 md:gap-8 mb-8 max-w-2xl w-full px-4">
+                <div class="nav-icon-btn flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer group" onclick="quickSearch('Geologi Pegunungan')">
+                    <svg class="w-8 h-8 text-orange-400 mb-2 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.258 6l5.483 13.124A1 1 0 0117.818 20.5H2.182a1 1 0 01-.923-1.376l6-15a1 1 0 011.846 0l1.154 2.876"></path></svg>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 group-hover:text-blue-300">Geologi</span>
+                </div>
+                <div class="nav-icon-btn flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer group" onclick="quickSearch('Meteorologi dan Cuaca Ekstrem')">
+                    <svg class="w-8 h-8 text-cyan-400 mb-2 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 group-hover:text-blue-300">Cuaca</span>
+                </div>
+                <div class="nav-icon-btn flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer group" onclick="quickSearch('Oseanografi Arus Laut')">
+                    <svg class="w-8 h-8 text-blue-500 mb-2 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 group-hover:text-blue-300">Laut</span>
+                </div>
+                <div class="nav-icon-btn flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer group" onclick="quickSearch('Astronomi dan Planetologi')">
+                    <svg class="w-8 h-8 text-purple-400 mb-2 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 group-hover:text-blue-300">Astro</span>
+                </div>
+            </div>
+
+            <!-- Search Console -->
+            <div class="w-full max-w-2xl glass-panel rounded-xl p-6 relative z-10">
+                <form id="search-form" class="relative group">
+                    <input type="text" id="search-query" placeholder="Tanyakan pada EarthGenius..." class="w-full py-3 pl-4 pr-12 bg-black/40 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all" required autocomplete="off">
+                    <button type="submit" id="search-button" class="absolute right-2 top-2 bottom-2 px-4 bg-blue-600 hover:bg-blue-500 rounded text-sm font-bold transition-colors">GO</button>
+                </form>
+
+                <!-- Results Area -->
+                <div id="results-container" class="hidden mt-6 space-y-4">
+                    <div id="loading-indicator" class="hidden text-center py-4 text-blue-300 animate-pulse text-sm font-mono">PROCESSING QUERY WITH GEMINI AI...</div>
+                    <div id="text-result" class="text-sm text-gray-300 leading-relaxed max-h-60 overflow-y-auto pr-2"></div>
+                    <img id="image-result" class="w-full h-56 object-cover rounded-lg border border-white/10 hidden">
+                    <button onclick="resetSearch()" class="text-xs text-gray-500 hover:text-white mt-2 underline">Clear Console</button>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-10 animate-bounce">
+                <p class="text-xs text-gray-400 mb-2 text-center">SCROLL TO DIG DEEPER</p>
+                <svg class="w-6 h-6 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            </div>
+        </section>
+
+        <!-- SECTION 2: UNDERGROUND (Interactive Tools) -->
+        <section id="sec-underground" class="section-spacer flex-col">
+            <div class="glass-panel p-8 rounded-2xl max-w-4xl w-full">
+                <h2 class="text-3xl font-bold text-emerald-400 mb-6 flex items-center gap-3">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    LABORATORIUM BAWAH TANAH
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Geological Time Slider -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Mesin Waktu Geologis</h3>
+                        <div class="relative pt-6 pb-2">
+                            <input type="range" min="0" max="4" value="4" step="1" id="time-slider" oninput="updateTimePeriod(this.value)">
+                            <div class="flex justify-between text-[10px] text-gray-500 mt-2 font-mono uppercase">
+                                <span>Hadean</span>
+                                <span>Jurassic</span>
+                                <span>Holocene</span>
+                            </div>
+                        </div>
+                        <div id="time-info" class="mt-4 p-4 bg-black/30 rounded border border-white/5 h-32 overflow-y-auto">
+                            <h4 class="text-blue-300 font-bold text-sm">Zaman Sekarang (Holocene)</h4>
+                            <p class="text-xs text-gray-400 mt-2">Masa kini. Peradaban manusia berkembang pesat. Bentuk benua seperti yang kita kenal sekarang.</p>
+                        </div>
+                    </div>
+
+                    <!-- Rock Identifier (Mockup) -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Identifikasi Mineral</h3>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button class="p-4 bg-gray-700 rounded hover:bg-gray-600 border border-transparent hover:border-emerald-400 transition-all" onclick="identifyRock('Granit')">
+                                <div class="w-full h-8 bg-gray-400 rounded mb-2 opacity-50 pattern-dots"></div>
+                                <span class="text-xs block text-center">Bintik</span>
+                            </button>
+                            <button class="p-4 bg-gray-800 rounded hover:bg-gray-700 border border-transparent hover:border-emerald-400 transition-all" onclick="identifyRock('Obsidian')">
+                                <div class="w-full h-8 bg-black rounded mb-2 opacity-80"></div>
+                                <span class="text-xs block text-center">Hitam Kaca</span>
+                            </button>
+                            <button class="p-4 bg-yellow-900/40 rounded hover:bg-yellow-900/60 border border-transparent hover:border-emerald-400 transition-all" onclick="identifyRock('Limestone')">
+                                <div class="w-full h-8 bg-yellow-100 rounded mb-2 opacity-50"></div>
+                                <span class="text-xs block text-center">Putih Kapur</span>
+                            </button>
+                        </div>
+                        <div id="rock-result" class="mt-4 text-xs text-emerald-300 font-mono min-h-[20px]">
+                            Pilih tekstur batuan untuk analisis...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: CORE (History & Facts) -->
+        <section id="sec-core" class="section-spacer flex-col">
+            <div class="glass-panel p-8 rounded-2xl max-w-2xl w-full text-center border-orange-500/30 shadow-[0_0_50px_rgba(234,88,12,0.2)]">
+                <div class="mb-4 inline-block p-3 bg-orange-500/20 rounded-full animate-pulse">
+                    <svg class="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <h2 class="text-4xl font-black text-orange-100 mb-2">INTI DALAM BUMI</h2>
+                <p class="text-orange-200/70 mb-8 text-sm">Kedalaman: 5.150 - 6.370 km | Suhu: 5.400°C</p>
+
+                <div class="bg-black/40 p-6 rounded-lg border-l-4 border-orange-500 text-left">
+                    <h3 class="text-orange-400 font-bold text-sm uppercase tracking-widest mb-2">On This Day in Earth History</h3>
+                    <p id="history-fact" class="text-gray-300 text-sm leading-relaxed">
+                        Memuat data arsip sejarah geologi...
+                    </p>
+                </div>
+                
+                <button onclick="window.scrollTo({top:0, behavior:'smooth'})" class="mt-8 px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold rounded-full transition-all shadow-lg">
+                    KEMBALI KE PERMUKAAN
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+<script type="module">
+    // --- KONFIGURASI DINAMIS ---
+    const defaultKey = "AIzaSyB4rcttrfKdmnlewiVZnPMfHQctcarGo0c"; 
+    let userKey = localStorage.getItem('gemini_api_key') || "";
+
+    // Update status saat load
+    updateConnectionStatus();
+
+    window.toggleSettings = () => {
+        const modal = document.getElementById('settings-modal');
+        modal.classList.toggle('hidden');
+        if(!modal.classList.contains('hidden')) {
+            document.getElementById('user-api-key').value = userKey;
+        }
+    };
+
+    window.saveApiKey = () => {
+        const input = document.getElementById('user-api-key').value.trim();
+        if (input) {
+            userKey = input;
+            localStorage.setItem('gemini_api_key', userKey);
+            alert("API Key Tersimpan! Mode Live AI Aktif.");
+        } else {
+            userKey = "";
+            localStorage.removeItem('gemini_api_key');
+            alert("API Key Dihapus. Kembali ke Mode Simulasi Offline.");
+        }
+        updateConnectionStatus();
+        window.toggleSettings();
+    };
+
+    function updateConnectionStatus() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        const activeKey = userKey || defaultKey;
+        
+        if (activeKey && activeKey.length > 10) {
+            dot.classList.remove('bg-yellow-500');
+            dot.classList.add('bg-green-500');
+            text.innerText = "LIVE SATELLITE CONNECTION (GEMINI API)";
+            text.classList.add('text-green-400');
+        } else {
+            dot.classList.remove('bg-green-500');
+            dot.classList.add('bg-yellow-500');
+            text.innerText = "OFFLINE SIMULATION MODE";
+            text.classList.remove('text-green-400');
+        }
+    }
+
+    // --- UTILITY: SMART VISUAL FALLBACK SYSTEM (V11.4) ---
+    // Menjamin gambar selalu muncul, bahkan jika AI gagal atau offline
+    function getFallbackImage(query) {
+        const q = query.toLowerCase();
+        
+        // Database Gambar Cadangan HD
+        if (q.includes("gempa") || q.includes("seismic") || q.includes("tektonik") || q.includes("quake")) 
+            return "https://images.unsplash.com/photo-1514558358996-62e94922a9c3?q=80&w=1000&auto=format&fit=crop";
+        
+        if (q.includes("gunung") || q.includes("volca") || q.includes("erupsi") || q.includes("lava") || q.includes("magma")) 
+            return "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop";
+            
+        if (q.includes("laut") || q.includes("ocean") || q.includes("ombak") || q.includes("tsunami") || q.includes("karang")) 
+            return "https://images.unsplash.com/photo-1551244072-5d12893278ab?q=80&w=1000&auto=format&fit=crop";
+            
+        if (q.includes("cuaca") || q.includes("hujan") || q.includes("badai") || q.includes("iklim") || q.includes("awan")) 
+            return "https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=1000&auto=format&fit=crop";
+            
+        if (q.includes("angkasa") || q.includes("bintang") || q.includes("planet") || q.includes("galaksi") || q.includes("meteor")) 
+            return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000&auto=format&fit=crop";
+            
+        if (q.includes("batu") || q.includes("mineral") || q.includes("kristal") || q.includes("tambang") || q.includes("emas")) 
+            return "https://images.unsplash.com/photo-1525115708272-0587082936fb?q=80&w=1000&auto=format&fit=crop";
+            
+        if (q.includes("fosil") || q.includes("dinosaurus") || q.includes("purba") || q.includes("sejarah")) 
+            return "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=1000&auto=format&fit=crop";
+        
+        if (q.includes("hutan") || q.includes("tanah") || q.includes("longsor") || q.includes("banjir")) 
+            return "https://images.unsplash.com/photo-1448375240586-dfd8f37933ff?q=80&w=1000&auto=format&fit=crop";
+
+        // Default: Earth from Space Futuristic
+        return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000&auto=format&fit=crop";
+    }
+
+
+    // --- 1. PARALLAX ENGINE LOGIC ---
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        const height = window.innerHeight;
+        const spaceLayer = document.getElementById('layer-space');
+        const surfaceLayer = document.getElementById('layer-surface');
+        const undergroundLayer = document.getElementById('layer-underground');
+        const coreLayer = document.getElementById('layer-core');
+
+        if (scrollY < height) {
+            let progress = scrollY / height;
+            spaceLayer.style.opacity = 1 - progress;
+            surfaceLayer.style.opacity = progress;
+            undergroundLayer.style.opacity = 0;
+        } else if (scrollY < height * 2) {
+            let progress = (scrollY - height) / height;
+            spaceLayer.style.opacity = 0;
+            surfaceLayer.style.opacity = 1 - progress;
+            undergroundLayer.style.opacity = progress;
+            coreLayer.style.opacity = 0;
+        } else {
+            let progress = (scrollY - (height * 2)) / height;
+            undergroundLayer.style.opacity = Math.max(0, 1 - progress);
+            coreLayer.style.opacity = Math.min(1, progress);
+        }
+    });
+
+    // --- 2. LIVE DATA SIMULATOR ---
+    const ticker = document.getElementById('live-ticker');
+    const disasters = [
+        "GEMPA MAG 5.2 - MALUKU TENGGARA (12 MENIT LALU)",
+        "STATUS GUNUNG MERAPI: SIAGA (LEVEL III)",
+        "BADAI TROPIS 'ANGGREK' MENDEKATI PESISIR UTARA",
+        "KUALITAS UDARA JAKARTA: TIDAK SEHAT (AQI 152)",
+        "GEMPA MAG 6.1 - HONSHU, JEPANG (2 JAM LALU)",
+        "SUHU RATA-RATA GLOBAL HARI INI: +1.2°C DI ATAS PRA-INDUSTRI"
+    ];
+    ticker.innerText = disasters.join("  +++  ") + "  +++  " + disasters.join("  +++  ");
+
+    // On This Day Logic
+    const facts = [
+        "1883: Gunung Krakatau meletus dahsyat, terdengar hingga 3.000 mil jauhnya.",
+        "1960: Gempa Valdivia (Chili) tercatat sebagai gempa terbesar dalam sejarah (9.5 SR).",
+        "1912: Alfred Wegener pertama kali mempresentasikan teori Pergeseran Benua."
+    ];
+    document.getElementById('history-fact').innerText = facts[Math.floor(Math.random() * facts.length)];
+
+    // --- 3. INTERACTIVE TOOLS LOGIC ---
+    window.updateTimePeriod = (val) => {
+        const info = document.getElementById('time-info');
+        const data = [
+            { title: "Hadean Eon (4.6 Miliar Tahun Lalu)", text: "Bumi baru terbentuk. Permukaan cair, penuh magma, dan sering ditabrak asteroid. Belum ada kehidupan." },
+            { title: "Paleozoic Era (541 Juta Tahun Lalu)", text: "Ledakan kehidupan Kambrium. Lautan penuh dengan trilobita. Tumbuhan mulai menjajah daratan." },
+            { title: "Mesozoic Era (252 Juta Tahun Lalu)", text: "Zaman Dinosaurus (Triassic, Jurassic, Cretaceous). Pangea mulai terpecah menjadi benua modern." },
+            { title: "Cenozoic Era (66 Juta Tahun Lalu)", text: "Zaman Mamalia. Dinosaurus punah. Iklim mendingin menuju zaman es." },
+            { title: "Holocene (Sekarang)", text: "Masa kini. Peradaban manusia berkembang pesat. Bentuk benua stabil seperti sekarang." }
+        ];
+        info.innerHTML = `<h4 class="text-blue-300 font-bold text-sm">${data[val].title}</h4><p class="text-xs text-gray-400 mt-2 animate-pulse">${data[val].text}</p>`;
+    };
+
+    window.identifyRock = (type) => {
+        const result = document.getElementById('rock-result');
+        const descs = {
+            'Granit': "GRANIT: Batuan beku intrusif. Terbentuk dari pendinginan magma lambat di bawah tanah. Keras dan berbutir kasar.",
+            'Obsidian': "OBSIDIAN: Kaca vulkanik. Terbentuk dari lava yang mendingin sangat cepat sehingga kristal tidak sempat terbentuk.",
+            'Limestone': "BATU GAMPING: Batuan sedimen. Terbentuk dari akumulasi cangkang, karang, dan sisa organisme laut purba."
+        };
+        result.innerText = descs[type];
+    };
+
+    window.quickSearch = (term) => {
+        document.getElementById('search-query').value = term;
+        document.getElementById('search-button').click();
+    };
+
+    window.resetSearch = () => {
+        document.getElementById('results-container').classList.add('hidden');
+        document.getElementById('search-query').value = '';
+    };
+
+    // --- 4. SEARCH ENGINE (HYBRID: ONLINE GEMINI + OFFLINE SIMULATION) ---
+    const form = document.getElementById('search-form');
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = document.getElementById('search-query').value;
+        if (!query) return;
+
+        const resultsContainer = document.getElementById('results-container');
+        const loading = document.getElementById('loading-indicator');
+        const textDiv = document.getElementById('text-result');
+        const imgDiv = document.getElementById('image-result');
+
+        resultsContainer.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        textDiv.innerHTML = '';
+        imgDiv.classList.add('hidden'); // Reset image visibility
+
+        // Gunakan key dari input user (jika ada) atau default (jika ada)
+        const activeKey = userKey || defaultKey;
+
+        try {
+            if (!activeKey || activeKey.length < 10) {
+                // JIKA TIDAK ADA KEY -> OFFLINE MODE
+                await simulateOfflineSearch(query, textDiv, imgDiv);
+            } else {
+                // JIKA ADA KEY -> LIVE GEMINI AI
+                // Parallel call: Text from Gemini, Image from Imagen (or fallback)
+                const [summary, imgUrl] = await Promise.all([
+                    generateSummary(query, activeKey), 
+                    generateImage(query, activeKey) // generateImage now has internal fallback logic
+                ]);
+                
+                textDiv.innerHTML = summary.replace(/\n/g, '<br>');
+                
+                // Logic tampilan gambar yang dijamin
+                const finalImageUrl = imgUrl || getFallbackImage(query);
+                imgDiv.src = finalImageUrl;
+                imgDiv.classList.remove('hidden');
+            }
+        } catch (err) {
+            // Fallback total jika API Error
+            console.error(err);
+            textDiv.innerHTML += `<br><span class="text-red-400 text-xs">[API ERROR: Beralih ke Mode Offline]</span>`;
+            await simulateOfflineSearch(query, textDiv, imgDiv);
+        } finally {
+            loading.classList.add('hidden');
+        }
+    });
+
+    // --- 5. SIMULASI OFFLINE (DATABASE CADANGAN) ---
+    async function simulateOfflineSearch(query, textDiv, imgDiv) {
+        await new Promise(r => setTimeout(r, 800)); // Sedikit delay simulasi
+        
+        let title = "Analisis Mode Offline";
+        let content = `Sistem tidak terhubung ke Neural Core. Menampilkan data umum untuk topik: "${query}".`;
+        
+        // Gunakan Fallback Image Generator
+        const imgUrl = getFallbackImage(query);
+
+        if (query.toLowerCase().includes("gempa")) {
+            title = "Aktivitas Seismik";
+            content = "Gempa bumi adalah getaran di permukaan bumi akibat pelepasan energi dari dalam litosfer secara tiba-tiba yang menciptakan gelombang seismik.";
+        } else if (query.toLowerCase().includes("gunung")) {
+            title = "Vulkanologi";
+            content = "Gunung berapi adalah celah di kerak bumi yang memungkinkan lava cair, abu vulkanik, dan gas keluar dari kamar magma di bawah permukaan.";
+        }
+
+        textDiv.innerHTML = `<strong class="text-yellow-500 block mb-2">[OFFLINE MODE] ${title}</strong>${content}`;
+        imgDiv.src = imgUrl;
+        imgDiv.classList.remove('hidden');
+    }
+
+    // --- 6. REAL API FUNCTIONS (GEMINI + IMAGEN) ---
+    async function fetchWithRetry(url, options, retries = 2, delay = 1000) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.status !== 429) return response;
+            } catch (error) {}
+            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
+        throw new Error('API Timeout');
+    }
+
+    async function generateSummary(query, key) {
+        try {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+            const payload = {
+                contents: [{ parts: [{ text: query }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: "Anda adalah AI EarthGenius. Jelaskan konsep kebumian ini secara ilmiah, padat, dan akurat dalam Bahasa Indonesia. Fokus pada fakta geologis." }] }
+            };
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal mengambil data dari Gemini AI.";
+        } catch (e) {
+            return "Gagal menghubungi server AI untuk teks.";
+        }
+    }
+
+    async function generateImage(query, key) {
+        try {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${key}`;
+            const payload = {
+                instances: { prompt: `Scientific visualization of ${query}, earth science context, photorealistic or diagram, 8k resolution` },
+                parameters: { sampleCount: 1 }
+            };
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+            
+            // Jika Imagen berhasil
+            if (b64) return `data:image/png;base64,${b64}`;
+            
+            // Jika Imagen gagal/kuota habis -> Gunakan Fallback
+            return getFallbackImage(query);
+            
+        } catch (e) {
+            console.warn("Imagen API Error, switching to fallback.");
+            // Jika API Error -> Gunakan Fallback
+            return getFallbackImage(query);
+        }
+    }
+</script>
+</body>
+</html>
